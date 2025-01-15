@@ -11,6 +11,12 @@
 
 using namespace std;
 
+string toUpper(string str) {
+    for (char& c : str)
+        c = toupper(c);
+    return str;
+}
+
 int main(int argc, char *argv[]){
   // Arquivos de entrada e saída
   ifstream fileIn;
@@ -72,6 +78,8 @@ int main(int argc, char *argv[]){
     }
   }
 
+  string seasonUpper = toUpper(season);
+
   for(i=0;i<nx;i++){
     for(j=0;j<ny;j++){
       for(k=0;k<nz;k++){
@@ -80,26 +88,26 @@ int main(int argc, char *argv[]){
         undefCont=0;
         for(l=0;l<nt;l++){
           if((inMatrix[i][j][k][l] <= cutLine)&&(zeroSentinel == true)&&(inMatrix[i][j][k][l] != undef)){
-            if(season == "ano"){
+            if(seasonUpper == "ANO"){
               outMatrix[i][j][k]++;
               zeroSentinel = false;
-            }else if(season == "ver"){
-              if((l%12 == 1)||(l%12 == 2)||(l%12 == 12)){
+            }else if(seasonUpper == "DJF"){
+              if((l%12 == 11)||(l%12 == 0)||(l%12 == 1)){
                 outMatrix[i][j][k]++;
                 zeroSentinel = false;
               }
-            }else if(season == "out"){
-              if((l%12 == 3)||(l%12 == 4)||(l%12 == 5)){
+            }else if(seasonUpper == "MAM"){
+              if((l%12 == 2)||(l%12 == 3)||(l%12 == 4)){
                 outMatrix[i][j][k]++;
                 zeroSentinel = false;
               }
-            }else if(season == "inv"){
-              if((l%12 == 6)||(l%12 == 7)||(l%12 == 8)){
+            }else if(seasonUpper == "JJA"){
+              if((l%12 == 5)||(l%12 == 6)||(l%12 == 7)){
                 outMatrix[i][j][k]++;
                 zeroSentinel = false;
               }
-            }else if(season == "pri"){
-              if((l%12 == 9)||(l%12 == 10)||(l%12 == 11)){
+            }else if(seasonUpper == "SON"){
+              if((l%12 == 8)||(l%12 == 9)||(l%12 == 10)){
                 outMatrix[i][j][k]++;
                 zeroSentinel = false;
               }
