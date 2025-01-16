@@ -9,19 +9,15 @@
 'set grads off'
 'set grid off'
 'set mpdraw on'
-*#########
 
 'set gxout grfill'
 'd <VAR>' 
 'cbarn' 
 
-*##### TITULO ####
 'draw title Contagem - <CUT_LINE> - <SEASON> - %<PERC>'
-*#################
 'printim <NOME_FIG>.png'
 'quit'
 
-**********************************************
 function rgb(NCOR)
   steps=NCOR*2+1
   i=0
@@ -43,4 +39,3 @@ function rgb(NCOR)
   rc=close('.pipe')
   '!rm -f .pipe'
 return
-**********************************************
