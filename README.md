@@ -1,6 +1,8 @@
 # contagemSPI
 Conta o número de eventos abaixo de uma linha de corte de um CTL
 
+![Contagem](src/pics/pic.png)
+
 **Implementado por Eduardo Machado**  
 **Ano: 2016**
 
