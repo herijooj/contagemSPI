@@ -24,7 +24,7 @@ then
 fi
 
 # Define arrays for seasons and percentages
-SEASONS=("DJF" "MAM" "JJA" "SON")
+SEASONS=("DJF" "MAM" "JJA" "SON" "ANO")
 PERCENTAGES=(70 80)
 CUT_LINES=(-2.0 -1.5 1.0 2.0)
 
@@ -129,7 +129,11 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
 
                 if [[ ${TXT_OR_BIN} -eq "0" ]] || [[ ${TXT_OR_BIN} -eq "2" ]]; then
                     mkdir -p "$CUT_DIR/txts"
-                    mv *.txt "$CUT_DIR/txts/" && echo -e "${GREEN}[OK]${NC} Arquivos de texto movidos"
+                    if ls *.txt 1>/dev/null 2>&1; then
+                        mv *.txt "$CUT_DIR/txts/"
+                    else
+                        echo -e "${BLUE}Não há arquivos .txt para mover${NC}"
+                    fi
                 fi
 
                 # Plotting

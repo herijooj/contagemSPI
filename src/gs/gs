@@ -13,6 +13,7 @@
 
 'set gxout grfill'
 'd <VAR>' 
+'cbarn' 
 
 *##### TITULO ####
 'draw title Contagem - <CUT_LINE> - <SEASON> - %<PERC>'
