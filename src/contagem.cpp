@@ -22,7 +22,7 @@ int main(int argc, char *argv[]){
   ifstream fileIn;
 	ofstream fileOutBin, fileOutTxt;
   // Parâmetros de entrada
-  string nameFileIn, nameFileOut, season;
+  string nameFileIn, nameFileOut;
   int nx, ny, nz, nt, txtOrBin;
   float undef, cutLine, dataCutLine;
   // Demais variáveis do programa
@@ -33,21 +33,20 @@ int main(int argc, char *argv[]){
   float ***outMatrix;   // matriz de saída
 
   // Leitura de parâmetros.
-	if(argc != 12){
+	if(argc != 11){
 		cout << "Parâmetros errados!" << endl;
 		return 0;
 	}
-	nameFileIn=argv[1];
-	nx=atoi(argv[2]);
-	ny=atoi(argv[3]);
-  nz=atoi(argv[4]);
-  nt=atoi(argv[5]);
-  undef=atof(argv[6]);
-  cutLine=atof(argv[7]);
-  txtOrBin=atoi(argv[8]);
-  season=argv[9];
-  nameFileOut=argv[10];
-  dataCutLine=atof(argv[11]);
+	nameFileIn = argv[1];
+	nx = atoi(argv[2]);
+	ny = atoi(argv[3]);
+	nz = atoi(argv[4]);
+	nt = atoi(argv[5]);
+	undef = atof(argv[6]);
+	cutLine = atof(argv[7]);
+	txtOrBin = atoi(argv[8]);
+	nameFileOut = argv[9];
+	dataCutLine = atof(argv[10]);
   // Alocação da matriz de entrada
   inMatrix = new float***[nx];
   outMatrix = new float**[nx];
@@ -78,8 +77,6 @@ int main(int argc, char *argv[]){
     }
   }
 
-  string seasonUpper = toUpper(season);
-
   for(i=0;i<nx;i++){
     for(j=0;j<ny;j++){
       for(k=0;k<nz;k++){
@@ -87,33 +84,11 @@ int main(int argc, char *argv[]){
         outMatrix[i][j][k] = 0;
         undefCont=0;
         for(l=0;l<nt;l++){
-          if((inMatrix[i][j][k][l] <= cutLine)&&(zeroSentinel == true)&&(inMatrix[i][j][k][l] != undef)){
-            if(seasonUpper == "ANO"){
-              outMatrix[i][j][k]++;
-              zeroSentinel = false;
-            }else if(seasonUpper == "DJF"){
-              if((l%12 == 11)||(l%12 == 0)||(l%12 == 1)){
-                outMatrix[i][j][k]++;
-                zeroSentinel = false;
-              }
-            }else if(seasonUpper == "MAM"){
-              if((l%12 == 2)||(l%12 == 3)||(l%12 == 4)){
-                outMatrix[i][j][k]++;
-                zeroSentinel = false;
-              }
-            }else if(seasonUpper == "JJA"){
-              if((l%12 == 5)||(l%12 == 6)||(l%12 == 7)){
-                outMatrix[i][j][k]++;
-                zeroSentinel = false;
-              }
-            }else if(seasonUpper == "SON"){
-              if((l%12 == 8)||(l%12 == 9)||(l%12 == 10)){
-                outMatrix[i][j][k]++;
-                zeroSentinel = false;
-              }
-            }
+          if((inMatrix[i][j][k][l] <= cutLine) && zeroSentinel && (inMatrix[i][j][k][l] != undef)){
+            outMatrix[i][j][k]++;
+            zeroSentinel = false;
           }
-          if((inMatrix[i][j][k][l] >= 0.0)&&(zeroSentinel == false)&&(inMatrix[i][j][k][l] != undef)){
+          if((inMatrix[i][j][k][l] >= 0.0) && !zeroSentinel && (inMatrix[i][j][k][l] != undef)){
             zeroSentinel = true;
           }
           if(inMatrix[i][j][k][l] != undef){
@@ -129,7 +104,7 @@ int main(int argc, char *argv[]){
 
   // Escrita no arquivo de saída.
   if((txtOrBin == 0)||(txtOrBin == 2)){
-		fileOutTxt.open((nameFileOut+"_"+season+".txt").c_str(), ios::out);
+		fileOutTxt.open((nameFileOut+"_ANO.txt").c_str(), ios::out);
 
     for(i=0;i<nz;i++){
   		for(j=ny-1;j>=0;j--){
@@ -147,7 +122,7 @@ int main(int argc, char *argv[]){
     }
   }
   if((txtOrBin == 1)||(txtOrBin == 2)){
-    fileOutBin.open((nameFileOut+"_"+season+".bin").c_str(), ios::binary);
+    fileOutBin.open((nameFileOut+"_ANO.bin").c_str(), ios::binary);
 
     for(i=0;i<nz;i++){
   		for(j=0;j<ny;j++){
