@@ -42,7 +42,8 @@ INPUT_PATH="$1"
 TXT_OR_BIN="${2:-1}"  # Default to 1 if not specified
 
 # Create output directory structure
-BASE_OUTPUT_DIR="output"
+BASE_OUTPUT_DIR="output/contagem"
+FIGURES_DIR="$BASE_OUTPUT_DIR/figures"
 mkdir -p "$BASE_OUTPUT_DIR"
 
 # Process input path
@@ -68,23 +69,17 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
     FILE_OUTPUT_DIR="$BASE_OUTPUT_DIR/$CTL_BASE"
     mkdir -p "$FILE_OUTPUT_DIR"
 
-    SEASON="ANO"
-
     # Process each combination of parameters
     for PERCENTAGE in "${PERCENTAGES[@]}"; do
         for CUT_LINE in "${CUT_LINES[@]}"; do
             echo -e "${BLUE}[CONFIG]${NC} Percentual: ${YELLOW}$PERCENTAGE%${NC}, Linha de Corte: ${YELLOW}$CUT_LINE${NC}"
 
-            # Create season directory
-            SEASON_DIR="$FILE_OUTPUT_DIR/$SEASON"
-            mkdir -p "$SEASON_DIR"
-
             # Create percentage directory
-            PERC_DIR="$SEASON_DIR/perc_$PERCENTAGE"
+            PERC_DIR="$FILE_OUTPUT_DIR/$PERCENTAGE"
             mkdir -p "$PERC_DIR"
 
             # Create cut line directory
-            CUT_DIR="$PERC_DIR/cut_${CUT_LINE/./_}"
+            CUT_DIR="$PERC_DIR/${CUT_LINE/./_}"
             echo -e "${GRAY}[INFO]${NC} Criando diretórios..."
             mkdir -p "$CUT_DIR" && echo -e "${GREEN}[OK]${NC} Diretórios criados com sucesso"
 
@@ -107,7 +102,7 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
 
             # Set output files in the appropriate directory
             ARQ_BIN_OUT="$CUT_DIR/$(basename $ARQ_BIN_IN .bin)_${CUT_LINE}"
-            ARQ_CTL_OUT="$CUT_DIR/$(basename $ARQ_CTL_IN .ctl)_${CUT_LINE}_${SEASON}.ctl"
+            ARQ_CTL_OUT="$CUT_DIR/$(basename $ARQ_CTL_IN .ctl)_${CUT_LINE}.ctl"
 
             # Execute contagem program
             #echo -e "${BOLD}${BLUE}[EXECUÇÃO]${NC} Iniciando programa contagem..."
@@ -122,7 +117,7 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
             echo -e "${GRAY}[INFO]${NC} Processando arquivos de saída..."
             if [[ ${TXT_OR_BIN} -eq "1" ]] || [[ ${TXT_OR_BIN} -eq "2" ]]; then
                 cp $ARQ_CTL_IN $ARQ_CTL_OUT
-                sed -i "s#$(basename $ARQ_BIN_IN .bin)#$(basename ${ARQ_BIN_OUT}_${SEASON} .bin)#g" ${ARQ_CTL_OUT}
+                sed -i "s#$(basename $ARQ_BIN_IN .bin)#$(basename ${ARQ_BIN_OUT} .bin)#g" ${ARQ_CTL_OUT}
                 sed -i -E "s/^tdef[[:space:]]+[0-9]+/tdef 1/I" ${ARQ_CTL_OUT}
                 #echo -e "${GREEN}[OK]${NC} Arquivos binários processados"
             fi
@@ -137,16 +132,22 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
             fi
 
             # Plotting
-            #echo -e "${BOLD}${BLUE}[PLOT]${NC} Gerando gráficos..."
             TMP_GS=$(mktemp)
             trap 'rm -f "$TMP_GS"' EXIT
+
+            # Modificação da extração do SPI
+            SPI=$(basename "$ARQ_CTL_IN" | grep -o -P 'spi\K[0-9]+|spi=\K[0-9]+')
+            if [ -z "$SPI" ]; then
+                echo -e "${YELLOW}[AVISO]${NC} Não foi possível extrair SPI do nome do arquivo."
+                SPI=""  # valor padrão caso não encontre
+            fi
 
             sed -e "s|<CTL>|$ARQ_CTL_OUT|g" \
                 -e "s|<VAR>|$VAR|g" \
                 -e "s|<CUT_LINE>|$CUT_LINE|g" \
-                -e "s|<SEASON>|$SEASON|g" \
+                -e "s|<SPI>|$SPI|g" \
                 -e "s|<PERC>|$PERCENTAGE|g" \
-                -e "s|<NOME_FIG>|${ARQ_BIN_OUT}_${SEASON}|g" \
+                -e "s|<NOME_FIG>|${ARQ_BIN_OUT}|g" \
                 "$SCRIPT_DIR/src/gs/gs" > "$TMP_GS"
 
             if grads -blc "run $TMP_GS"; then
@@ -156,6 +157,10 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
                 exit 1
             fi
             
+            # dado_composto_ams_mensal_lab+gpcc_spi12_-1.5.png
+            mkdir -p "$FIGURES_DIR/$PERCENTAGE/$CUT_LINE"
+            cp $ARQ_BIN_OUT.png $FIGURES_DIR/$PERCENTAGE/$CUT_LINE/$(basename $ARQ_BIN_OUT).png
+
             echo -e "${GRAY}─────────────────────────────────────────${NC}"
         done
     done

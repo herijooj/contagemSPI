@@ -104,7 +104,7 @@ int main(int argc, char *argv[]){
 
   // Escrita no arquivo de saída.
   if((txtOrBin == 0)||(txtOrBin == 2)){
-		fileOutTxt.open((nameFileOut+"_ANO.txt").c_str(), ios::out);
+		fileOutTxt.open((nameFileOut+".txt").c_str(), ios::out);
 
     for(i=0;i<nz;i++){
   		for(j=ny-1;j>=0;j--){
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]){
     }
   }
   if((txtOrBin == 1)||(txtOrBin == 2)){
-    fileOutBin.open((nameFileOut+"_ANO.bin").c_str(), ios::binary);
+    fileOutBin.open((nameFileOut+".bin").c_str(), ios::binary);
 
     for(i=0;i<nz;i++){
   		for(j=0;j<ny;j++){

@@ -11,10 +11,10 @@
 'set mpdraw on'
 
 'set gxout grfill'
-'d <VAR>' 
-'cbarn' 
+'d <VAR>'
+'cbarn'
 
-'draw title Contagem - <CUT_LINE> - <SEASON> - %<PERC>'
+'draw title Contagem | SPI<SPI> | <CUT_LINE> | <PERC>%'
 'printim <NOME_FIG>.png'
 'quit'
 
