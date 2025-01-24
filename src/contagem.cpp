@@ -28,9 +28,11 @@ int main(int argc, char *argv[]){
   // Demais variáveis do programa
   int i, j, k, l;       // Indices para trabalhar com as matrizes
   int undefCont;        // Contador de valores indefinidos
-  bool zeroSentinel;    // booleano para dizer quando o gráfico passa pelo zero
   float ****inMatrix;   // matriz de entrada
   float ***outMatrix;   // matriz de saída
+  float ****outMatrixMensal; // matriz de saída
+  int eventCont, eventContMensal;
+  bool abaixoCutline;
 
   // Leitura de parâmetros.
 	if(argc != 11){
@@ -50,14 +52,18 @@ int main(int argc, char *argv[]){
   // Alocação da matriz de entrada
   inMatrix = new float***[nx];
   outMatrix = new float**[nx];
+  outMatrixMensal = new float***[nx];
   for(i=0;i<nx;i++){
     inMatrix[i] = new float**[ny];
     outMatrix[i] = new float*[ny];
+    outMatrixMensal[i] = new float**[ny];
     for(j=0;j<ny;j++){
       inMatrix[i][j] = new float*[nz];
       outMatrix[i][j] = new float[nz];
+      outMatrixMensal[i][j] = new float*[nz];
       for(k=0;k<nz;k++){
         inMatrix[i][j][k] = new float[nt];
+        outMatrixMensal[i][j][k] = new float[nt/12];
       }
     }
   }
@@ -80,23 +86,39 @@ int main(int argc, char *argv[]){
   for(i=0;i<nx;i++){
     for(j=0;j<ny;j++){
       for(k=0;k<nz;k++){
-        zeroSentinel = true;
+        abaixoCutline = false;
         outMatrix[i][j][k] = 0;
-        undefCont=0;
+        eventCont = 0;
+        eventContMensal = 0;
+        undefCont = 0;
         for(l=0;l<nt;l++){
-          if((inMatrix[i][j][k][l] <= cutLine) && zeroSentinel && (inMatrix[i][j][k][l] != undef)){
-            outMatrix[i][j][k]++;
-            zeroSentinel = false;
+          if((inMatrix[i][j][k][l] <= cutLine) && (inMatrix[i][j][k][l] != undef)){
+            if(!abaixoCutline) eventContMensal++;
+            abaixoCutline = true;
+          } else if((inMatrix[i][j][k][l] > cutLine) && abaixoCutline){
+            abaixoCutline = false;
+            eventCont++;
           }
-          if((inMatrix[i][j][k][l] >= 0.0) && !zeroSentinel && (inMatrix[i][j][k][l] != undef)){
-            zeroSentinel = true;
+          if((l+1) % 12 == 0){
+            outMatrixMensal[i][j][k][(l+1)/12 - 1] = eventContMensal;
+            eventContMensal = 0;
           }
           if(inMatrix[i][j][k][l] != undef){
             undefCont++;
           }
         }
-        if(undefCont < nt*(dataCutLine/100)){
+        if(abaixoCutline) eventCont++;
+        if(undefCont <= (dataCutLine/100)*nt){
           outMatrix[i][j][k] = undef;
+        } else if(eventCont == 0){
+          outMatrix[i][j][k] = 0.0;
+        } else {
+          outMatrix[i][j][k] = eventCont;
+        }
+        for(l=0; l<nt/12; l++){
+          if(undefCont <= (dataCutLine/100)*nt){
+            outMatrixMensal[i][j][k][l] = undef;
+          }
         }
       }
     }
@@ -120,6 +142,25 @@ int main(int argc, char *argv[]){
         fileOutTxt << endl;
   		}
     }
+    ofstream fileOutTxtMensal((nameFileOut+"_mensal.txt").c_str(), ios::out);
+    for(l=0; l<nt/12; l++){
+      fileOutTxtMensal << "Ano " << l+1 << ":" << endl << endl;
+      for(i=0;i<nz;i++){
+        for(j=ny-1;j>=0;j--){
+          for(k=0;k<nx;k++){
+            if(outMatrixMensal[k][j][i][l] == undef){
+              fileOutTxtMensal << "-- ";
+            } else if(outMatrixMensal[k][j][i][l] < 10){
+              fileOutTxtMensal << "0" << outMatrixMensal[k][j][i][l] << " ";
+            } else {
+              fileOutTxtMensal << outMatrixMensal[k][j][i][l] << " ";
+            }
+          }
+          fileOutTxtMensal << endl;
+        }
+      }
+    }
+    fileOutTxtMensal.close();
   }
   if((txtOrBin == 1)||(txtOrBin == 2)){
     fileOutBin.open((nameFileOut+".bin").c_str(), ios::binary);
@@ -131,6 +172,17 @@ int main(int argc, char *argv[]){
         }
       }
 		}
+    ofstream fileOutBinMensal((nameFileOut+"_mensal.bin").c_str(), ios::binary);
+    for(l=0; l<nt/12; l++){
+      for(k=0;k<nz;k++){
+        for(j=0;j<ny;j++){
+          for(i=0;i<nx;i++){
+            fileOutBinMensal.write((char*)&outMatrixMensal[i][j][k][l], sizeof(float));
+          }
+        }
+      }
+    }
+    fileOutBinMensal.close();
   }
 
   fileOutTxt.close();

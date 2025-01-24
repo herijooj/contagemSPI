@@ -24,7 +24,7 @@ then
 fi
 
 # Define arrays for percentages
-PERCENTAGES=(70 80)
+PERCENTAGES=(80)
 CUT_LINES=(-2.0 -1.5 1.0 2.0)
 
 # Check if input directory or file is provided
