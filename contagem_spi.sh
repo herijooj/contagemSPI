@@ -31,7 +31,7 @@ CUT_LINES=(-2.0 -1.5 1.0 2.0)
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
     echo -e "${RED}ERRO! Parametros errados! Utilize:${NC}"
     echo -e "${YELLOW}script.sh [DIRETORIO_OU_ARQUIVO_ENTRADA] [TXT_OU_BIN]${NC}"
-    echo
+    echo 
     echo -e "${BLUE} - TXT_OU_BIN = 0, cria arquivo texto com os resultados.${NC}"
     echo -e "${BLUE} - TXT_OU_BIN = 1, cria arquivo binário e controle com resultados (padrão).${NC}"
     echo -e "${BLUE} - TXT_OU_BIN = 2, cria os dois tipos de arquivos.${NC}"
@@ -143,10 +143,17 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
             trap 'rm -f "$TMP_GS"' EXIT
 
             # Modificação da extração do SPI
-            SPI=$(basename "$ARQ_CTL_IN" | grep -o -P 'spi\K[0-9]+|spi=\K[0-9]+')
+            # Tenta obter o valor de SPI do arquivo CTL
+            SPI=$(grep -i "spi[[:space:]]*=" "$ARQ_CTL_IN" | head -n 1 | awk -F'=' '{print $2}' | tr -d '"' | tr -d ' ')
+
+            # Se não encontrar no arquivo, tenta extrair do nome do arquivo
             if [ -z "$SPI" ]; then
-                echo -e "${YELLOW}[AVISO]${NC} Não foi possível extrair SPI do nome do arquivo."
-                SPI=""  # valor padrão caso não encontre
+                echo -e "${GRAY}[INFO]${NC} SPI não encontrado no arquivo CTL. Tentando extrair do nome do arquivo..."
+                SPI=$(basename "$ARQ_CTL_IN" | grep -o -P 'spi\K[0-9]+|spi=\K[0-9]+')
+                if [ -z "$SPI" ]; then
+                    echo -e "${YELLOW}[AVISO]${NC} Não foi possível extrair SPI do arquivo CTL ou do nome do arquivo."
+                    SPI=""  # valor padrão caso não encontre
+                fi
             fi
 
             sed -e "s|<CTL>|$ARQ_CTL_OUT|g" \
@@ -155,7 +162,7 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
                 -e "s|<SPI>|$SPI|g" \
                 -e "s|<PERC>|$PERCENTAGE|g" \
                 -e "s|<NOME_FIG>|${ARQ_BIN_OUT}|g" \
-                -e "s|<BOTTOM>|$(dirname ${CTL_FILE})|g" \
+                -e "s|<BOTTOM>|$(basename ${CTL_FILE})|g" \
                 "$SCRIPT_DIR/src/gs/gs" > "$TMP_GS"
 
             if grads -blc "run $TMP_GS"; then
@@ -165,7 +172,6 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
                 exit 1
             fi
             
-            # dado_composto_ams_mensal_lab+gpcc_spi12_-1.5.png
             mkdir -p "$FIGURES_DIR/$PERCENTAGE/$CUT_LINE"
             cp $ARQ_BIN_OUT.png $FIGURES_DIR/$PERCENTAGE/$CUT_LINE/$(basename $ARQ_BIN_OUT).png
 
