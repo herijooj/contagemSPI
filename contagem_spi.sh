@@ -42,7 +42,7 @@ INPUT_PATH="$1"
 TXT_OR_BIN="${2:-1}"  # Default to 1 if not specified
 
 # Create output directory structure
-BASE_OUTPUT_DIR="output/contagem"
+BASE_OUTPUT_DIR="$PWD/output/contagem/$(basename $INPUT_PATH)"
 FIGURES_DIR="$BASE_OUTPUT_DIR/figures"
 mkdir -p "$BASE_OUTPUT_DIR"
 
@@ -54,6 +54,13 @@ else
     # Directory processing
     CTL_FILES=("$INPUT_PATH"/*.ctl)
 fi
+
+echo -e "${GREEN}${BOLD}=== Iniciando operação ===${NC}"
+echo -e "${BLUE}[CONFIG]${NC} Percentuais: ${PERCENTAGES[@]}"
+echo -e "${BLUE}[CONFIG]${NC} Linhas de corte: ${CUT_LINES[@]}"
+echo -e "${BLUE}[CONFIG]${NC} Tipo de saída: ${TXT_OR_BIN}"
+echo -e "${BLUE}[CONFIG]${NC} Diretório de entrada: ${INPUT_PATH}"
+echo -e "${BLUE}[CONFIG]${NC} Diretório de saída: ${BASE_OUTPUT_DIR}"
 
 # Process each .ctl file
 for CTL_FILE in "${CTL_FILES[@]}"; do
@@ -148,6 +155,7 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
                 -e "s|<SPI>|$SPI|g" \
                 -e "s|<PERC>|$PERCENTAGE|g" \
                 -e "s|<NOME_FIG>|${ARQ_BIN_OUT}|g" \
+                -e "s|<BOTTOM>|$(dirname ${CTL_FILE})|g" \
                 "$SCRIPT_DIR/src/gs/gs" > "$TMP_GS"
 
             if grads -blc "run $TMP_GS"; then
