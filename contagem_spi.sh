@@ -38,6 +38,67 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
     exit 1
 fi
 
+# Function to determine CLEVS and CCOLORS based on INTERVALO and CUT_LINE
+get_clevs() {
+    local interval="$1"
+    local cut_line="$2"
+
+    # Define ranges for each cut line and interval combination
+    declare -A ranges=(
+        ["-2.0_1"]="0 40"      
+        ["-2.0_3"]="0 30"      
+        ["-2.0_6"]="0 20"        
+        ["-2.0_9"]="0 10"       
+        ["-2.0_12"]="0 10"      
+        ["-2.0_24"]="0 10"      
+        ["-2.0_48"]="0 10"      
+        ["-2.0_60"]="0 10"      
+        ["-1.5_1"]="0 80"     
+        ["-1.5_3"]="0 50"     
+        ["-1.5_6"]="0 40"      
+        ["-1.5_9"]="0 30"      
+        ["-1.5_12"]="0 30"     
+        ["-1.5_24"]="0 20"      
+        ["-1.5_48"]="0 10"      
+        ["-1.5_60"]="0 10"      
+        ["1.0_1"]="50 150"
+        ["1.0_3"]="0 80"      
+        ["1.0_6"]="0 60"      
+        ["1.0_9"]="0 50"      
+        ["1.0_12"]="0 40"      
+        ["1.0_24"]="0 30"      
+        ["1.0_48"]="0 20"      
+        ["1.0_60"]="0 20"      
+        ["2.0_1"]="0 40"       
+        ["2.0_3"]="0 30"       
+        ["2.0_6"]="0 20"       
+        ["2.0_9"]="0 20"       
+        ["2.0_12"]="0 20"      
+        ["2.0_24"]="0 10"      
+        ["2.0_48"]="0 10"      
+        ["2.0_60"]="0 10"      
+    )
+
+    local key="${cut_line}_${interval}"
+    if [[ -n "${ranges[$key]}" ]]; then
+        local min max
+        read min max <<< "${ranges[$key]}"
+        # Always keep start and end values, divide remaining range into 8 equal parts
+        local step=$(( (max - min) / 8 ))
+        echo -n "$min "
+        for i in $(seq 1 7); do
+            echo -n "$(( min + i * step )) "
+        done
+        echo "$max"
+    else
+        echo "0 2 4 6 8 10 12 14 16 18" # fallback values
+    fi
+}
+
+get_colors() {
+    echo "70 4 11 5 12 8 27 2"
+}
+
 INPUT_PATH="$1"
 TXT_OR_BIN="${2:-1}"  # Default to 1 if not specified
 
@@ -142,6 +203,26 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
             TMP_GS=$(mktemp)
             trap 'rm -f "$TMP_GS"' EXIT
 
+            # Calcular coordenadas da grade
+            XDEF_LINE="$(grep -i '^xdef ' "$CTL_FILE" | head -n1)"
+            YDEF_LINE="$(grep -i '^ydef ' "$CTL_FILE" | head -n1)"
+
+            LONI="$(echo "$XDEF_LINE" | awk '{print $4}')"
+            LON_DELTA="$(echo "$XDEF_LINE" | awk '{print $5}')"
+            NXDEF="$(echo "$XDEF_LINE" | awk '{print $2}')"
+            LONF=$(awk -v start="$LONI" -v delta="$LON_DELTA" -v n="$NXDEF" 'BEGIN {print start + (n-1)*delta}')
+
+            LATI="$(echo "$YDEF_LINE" | awk '{print $4}')"
+            LAT_DELTA="$(echo "$YDEF_LINE" | awk '{print $5}')"
+            NYDEF="$(echo "$YDEF_LINE" | awk '{print $2}')"
+            LATF=$(awk -v start="$LATI" -v delta="$LAT_DELTA" -v n="$NYDEF" 'BEGIN {print start + (n-1)*delta}')
+
+            if [ "$(echo "$LATI > $LATF" | bc -l)" -eq 1 ]; then
+                TMP="$LATI"
+                LATI="$LATF"
+                LATF="$TMP"
+            fi
+
             # Modificação da extração do SPI
             # Tenta obter o valor de SPI do arquivo CTL
             SPI=$(grep -i "spi[[:space:]]*=" "$ARQ_CTL_IN" | head -n 1 | awk -F'=' '{print $2}' | tr -d '"' | tr -d ' ')
@@ -156,16 +237,29 @@ for CTL_FILE in "${CTL_FILES[@]}"; do
                 fi
             fi
 
+            CINT=$(get_clevs $SPI $CUT_LINE)
+            CCOLORS=$(get_colors)
+
+            echo -e "${GRAY}[INFO]${NC} Gerando gráficos..."
+            echo -e "${BLUE}[CONFIG]${NC} LONI: $LONI, LONF: $LONF, LATI: $LATI, LATF: $LATF"
+            echo -e "${BLUE}[CONFIG]${NC} SPI: $SPI, CINT: $CINT, CCOLORS: $CCOLORS"
+
             sed -e "s|<CTL>|$ARQ_CTL_OUT|g" \
                 -e "s|<VAR>|$VAR|g" \
                 -e "s|<CUT_LINE>|$CUT_LINE|g" \
                 -e "s|<SPI>|$SPI|g" \
                 -e "s|<PERC>|$PERCENTAGE|g" \
                 -e "s|<NOME_FIG>|${ARQ_BIN_OUT}|g" \
+                -e "s|<CINT>|$CINT|g" \
+                -e "s|<CCOLORS>|$CCOLORS|g" \
                 -e "s|<BOTTOM>|$(basename ${CTL_FILE})|g" \
+                -e "s|<LATI>|$LATI|g" \
+                -e "s|<LATF>|$LATF|g" \
+                -e "s|<LONI>|$LONI|g" \
+                -e "s|<LONF>|$LONF|g" \
                 "$SCRIPT_DIR/src/gs/gs" > "$TMP_GS"
 
-            if grads -blc "run $TMP_GS"; then
+            if grads -pbc "run $TMP_GS"; then
                 echo -e "${GREEN}[SUCESSO]${NC} Gráficos gerados com sucesso"
             else
                 echo -e "${RED}[FALHA]${NC} Erro na geração dos gráficos"
